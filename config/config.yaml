@@ -1,0 +1,108 @@
+# Core Configuration for GenAI Resilience Demos
+# This configuration allows users to customize AWS settings for their environment
+
+# AWS Configuration
+aws:
+  # Primary AWS Profile (Account 1)
+  # Change this to match your configured AWS profile
+  profile_name: &aws-profile "genai"
+
+  # Secondary AWS Profile (Account 2) for cross-account demo
+  # Change this to match your second AWS profile
+  secondary_profile_name: &aws-profile-secondary "genai-secondary"
+
+  # The AWS source Region where Bedrock models will be called from using cross-region inference
+  # Note: Cross-region inference will handle distribution automatically
+  region_name: &aws-region "us-east-1"
+
+  # CloudWatch Log Group for Bedrock model invocation logs
+  bedrock_log_group_name: "BedrockModelInvocation"
+
+# Define reusable anchors for different AWS accounts
+x-aws-defaults: &aws-defaults
+  aws_region_name: *aws-region
+  aws_profile_name: *aws-profile
+
+x-aws-defaults-secondary: &aws-defaults-secondary
+  aws_region_name: *aws-region
+  aws_profile_name: *aws-profile-secondary
+
+# LiteLLM Server Configuration
+litellm:
+  # Port for the LiteLLM proxy server
+  port: 4000
+
+model_list:
+# Fallback Demo Models (Lower RPM to trigger fallbacks easily)
+- model_name: claude-sonnet-fallback-demo
+  litellm_params:
+    model: bedrock/us.anthropic.claude-sonnet-4-20250514-v1:0
+    <<: *aws-defaults
+  rpm: 3  # Reduced for easier demo
+  tpm: 100000
+
+# Load Balancing Demo Models (Separate pool from fallback demo)
+- model_name: claude-sonnet-loadbalance-demo
+  litellm_params:
+    model: bedrock/us.anthropic.claude-sonnet-4-20250514-v1:0
+    <<: *aws-defaults
+  rpm: 3  # Reduced for easier demo
+  tpm: 100000
+
+- model_name: claude-sonnet-loadbalance-demo
+  litellm_params:
+    model: bedrock/us.anthropic.claude-3-7-sonnet-20250219-v1:0
+    <<: *aws-defaults
+  rpm: 3  # Reduced for easier demo
+  tpm: 100000
+
+# Fallback Models (Higher capacity) - Separate for each demo
+- model_name: claude-sonnet-fallback-loadbalance
+  litellm_params:
+    model: bedrock/us.anthropic.claude-3-5-sonnet-20241022-v2:0
+    <<: *aws-defaults
+  rpm: 25  # Split capacity between demos
+  tpm: 250000
+
+- model_name: claude-sonnet-fallback-quota
+  litellm_params:
+    model: bedrock/us.anthropic.claude-3-5-sonnet-20241022-v2:0
+    <<: *aws-defaults
+  rpm: 25  # Split capacity between demos
+  tpm: 250000
+
+# Special models for quota isolation testing - different RPM limits per consumer
+- model_name: consumer-a-model
+  litellm_params:
+    model: bedrock/us.anthropic.claude-3-7-sonnet-20250219-v1:0
+    <<: *aws-defaults
+  rpm: 3  # Noisy consumer gets limited RPM
+  tpm: 30000
+
+- model_name: consumer-b-model
+  litellm_params:
+    model: bedrock/us.anthropic.claude-3-7-sonnet-20250219-v1:0
+    <<: *aws-defaults
+  rpm: 10  # Normal consumer gets higher RPM
+  tpm: 100000
+
+- model_name: consumer-c-model
+  litellm_params:
+    model: bedrock/us.anthropic.claude-3-7-sonnet-20250219-v1:0
+    <<: *aws-defaults
+  rpm: 10  # Normal consumer gets higher RPM
+  tpm: 100000
+
+# CRIS (Cross-Region Inference) Demo - Direct Bedrock model ID for demo script
+cris:
+  model_id: "us.anthropic.claude-sonnet-4-20250514-v1:0"
+
+router_settings:
+  routing_strategy: "simple-shuffle"
+  enable_pre_call_checks: true
+  allowed_fails: 2  # Lower threshold for faster demos
+  cooldown_time: 15  # Shorter cooldown for demos
+  fallbacks: [
+    {"claude-sonnet-fallback-demo": ["claude-sonnet-fallback-quota"]},
+    {"claude-sonnet-loadbalance-demo": ["claude-sonnet-fallback-loadbalance"]}
+  ]

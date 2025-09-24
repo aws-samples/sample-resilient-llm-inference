@@ -1,0 +1,11 @@
+[project]
+name = "genai-resilience"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "litellm[proxy]>=1.73.6.post1",
+    "openai>=1.93.0",
+    "boto3>=1.35.0",
+]
