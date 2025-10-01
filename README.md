@@ -2,9 +2,9 @@
 
 As organizations scale from simple chatbots to complex agentic AI systems—where a single request triggers dozens of model calls—traditional approaches to managing LLM capacity fall short.
 
-This repository contains companion code for the AWS blog post BLOG_POST_URL, demonstrating a progressive "crawl, walk, run" strategy for building resilient GenAI applications on AWS: starting with Amazon Bedrock cross-region inference for basic load distribution, advancing to AWS account sharding for quota isolation between teams, and culminating in a centralized gateway that provides intelligent routing across multiple providers, application-level rate limiting, and enterprise governance.
+This repository contains companion code for the AWS blog post BLOG_POST_URL, demonstrating a progressive "crawl, walk, run" strategy for building resilient GenAI applications on AWS. We cover 5 different patterns, starting with Amazon Bedrock cross-Region inference for basic load distribution, advancing to AWS account sharding for quota isolation between teams, and culminating in a centralized gateway that provides intelligent routing across multiple providers, application-level rate limiting, and enterprise governance.
 
-To illustrate these concepts, this project uses [LiteLLM](https://docs.litellm.ai/) as a reference implementation, though organizations can implement similar patterns using other gateway solutions, custom applications, or AWS services. For more robust deployments, organizations should consider the [AWS Solutions Guidance for Multi-Provider Generative AI Gateway](https://aws.amazon.com/solutions/guidance/multi-provider-generative-ai-gateway-on-aws/) which provides enterprise-grade features including container orchestration with Amazon ECS/EKS, SSL/TLS certificates via AWS Certificate Manager, web application firewall protection with AWS WAF, caching with Amazon ElastiCache, and secrets management with AWS Secrets Manager.
+To illustrate these concepts, this project uses [LiteLLM](https://docs.litellm.ai/) as a reference implementation, though organizations can implement similar patterns using other gateway solutions, custom applications, or AWS services. For more robust deployments, organizations should consider the [AWS Solutions Guidance for Multi-Provider Generative AI Gateway](https://aws.amazon.com/solutions/guidance/multi-provider-generative-ai-gateway-on-aws/) which provides enterprise-grade features including deploying the gateway on Amazon ECS or EKS, SSL/TLS certificates via AWS Certificate Manager, web application firewall protection with AWS WAF, caching with Amazon ElastiCache, and secrets management with AWS Secrets Manager.
 
 ## Prerequisites
 
@@ -15,11 +15,10 @@ To illustrate these concepts, this project uses [LiteLLM](https://docs.litellm.a
 ### AWS Configuration
 1. **AWS Account**: An active account with [Amazon Bedrock access](https://docs.aws.amazon.com/bedrock/latest/userguide/setting-up.html). For the account sharding demo, you'll need access to two AWS accounts, both configured with all the requirements described in items 2-4 below. Enable the following models in each account:
     - Anthropic Claude 3.7 Sonnet and Claude Sonnet 4
-    - Amazon Nova Pro, Premier, Lite, and Micro
-2. **AWS Profile & Region**: The project reads AWS configuration from `config/config.yaml`. First, update the profile name and region in `config/config.yaml` to match your setup, then ensure your [AWS profile credentials are configured](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html) before running the demos. The gateway and demo scripts will automatically use the profile and region specified in `config/config.yaml`. For multi-account deployments, follow [AWS multi-account best practices](https://docs.aws.amazon.com/whitepapers/latest/organizing-your-aws-environment/organizing-your-aws-environment.html).
+2. **AWS Profile & Region**: The project reads AWS configuration from `config/config.yaml`. First, update the profile name and Region in `config/config.yaml` to match your setup, then ensure your [AWS profile credentials are configured](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html) before running the demos. The gateway and demo scripts will automatically use the profile and Region specified in `config/config.yaml`. For multi-account deployments, follow [AWS multi-account best practices](https://docs.aws.amazon.com/whitepapers/latest/organizing-your-aws-environment/organizing-your-aws-environment.html).
    - A sample least-privilege IAM policy needed to run all the demos is provided in [`iam/policy.json`](iam/policy.json). Replace `<REGION>` and `<ACCOUNT_ID>` placeholders with your specific values before applying. Note that the values might change if you modify the default configuration values in `config/config.yaml`.
-3. **Enable Amazon Bedrock cross-region inference**: Configure [cross-region inference](https://docs.aws.amazon.com/bedrock/latest/userguide/cross-region-inference.html) in your AWS account to allow automatic distribution of requests across multiple AWS regions for improved availability and throughput.
-4. **Enable CloudWatch Logging for Bedrock**: Enable [model invocation logging](https://docs.aws.amazon.com/bedrock/latest/userguide/model-invocation-logging.html) in Amazon Bedrock and create the CloudWatch log group in the same region as your Bedrock configuration. Set the log group name in `config/config.yaml` under `aws.bedrock_log_group_name` (default: "BedrockModelInvocation"). Ensure your AWS profile has the required permissions:
+3. **Enable Amazon Bedrock cross-Region inference**: Configure [cross-Region inference](https://docs.aws.amazon.com/bedrock/latest/userguide/cross-Region-inference.html) in your AWS account to allow automatic distribution of requests across multiple AWS Regions for improved availability and throughput.
+4. **Enable CloudWatch Logging for Bedrock**: Enable [model invocation logging](https://docs.aws.amazon.com/bedrock/latest/userguide/model-invocation-logging.html) in Amazon Bedrock and create the CloudWatch log group in the same Region as your Bedrock configuration. Set the log group name in `config/config.yaml` under `aws.bedrock_log_group_name` (default: "BedrockModelInvocation"). Ensure your AWS profile has the required permissions:
         - `bedrock:InvokeModel` on the following model families:
             - `us.anthropic.claude-3-7-sonnet-*`
             - `us.anthropic.claude-sonnet-4-*`
@@ -41,27 +40,13 @@ uv sync  # This installs all dependencies from pyproject.toml including litellm,
 chmod +x ./bin/start-gateway.sh
 ```
 
-## Generative AI Gateway Configuration
-
-The project uses a single configuration file, [**config.yaml**](config/config.yaml), which contains the LiteLLM proxy configuration. All model endpoints use **Amazon Bedrock cross-Region inference (CRIS)**, which automatically distributes requests across multiple AWS regions to provide an additional layer of capacity and availability.
-
-## Starting the Gateway
-
-Open a terminal window and start the gateway server. **Keep this terminal running** throughout the resilience patterns 3-5:
-
-```bash
-./bin/start-gateway.sh
-```
-
-The gateway will start on port 4000 by default (configurable in `config/config.yaml`). Leave this process running and use a separate terminal for executing the demonstration scripts below.
-
 ## Testing All Resilience Patterns
 
 Open a new terminal window that you will use to run the test scripts below. Keep the Lite LLM gateway running on your original terminal during all the tests.
 
 ### 1. Amazon Bedrock Cross-Region Inference (CRIS)
 
-This demo showcases [Amazon Bedrock cross-region inference](https://docs.aws.amazon.com/bedrock/latest/userguide/cross-region-inference.html), which automatically distributes requests across multiple AWS regions for improved availability and throughput. The demo sends 10 concurrent requests to a single cross-region inference endpoint, using us-east-1 by default (configurable in `config/config.yaml`) as the source region.
+This demo showcases [Amazon Bedrock cross-Region inference](https://docs.aws.amazon.com/bedrock/latest/userguide/cross-Region-inference.html), which automatically distributes requests across multiple AWS Regions for improved availability and throughput. The demo sends 10 concurrent requests to a single cross-Region inference endpoint, using us-east-1 by default (configurable in `config/config.yaml`) as the source Region.
 
 ![Cross-Region Inference Architecture](imgs/demo-cris.jpg)
 
@@ -69,15 +54,15 @@ This demo showcases [Amazon Bedrock cross-region inference](https://docs.aws.ama
 |-------|---------|
 | us.anthropic.claude-sonnet-4-20250514-v1:0 | 10 |
 
-After sending the requests, the demo queries Amazon CloudWatch Logs to visualize how Amazon Bedrock automatically distributed them across multiple AWS regions without any additional configuration. The regional distribution varies based on [real-time factors](https://docs.aws.amazon.com/bedrock/latest/userguide/cross-region-inference.html) including traffic, demand, and resource utilization. Cross-region inference profiles route requests based on the source region, so check [supported regions and models](https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles-support.html) for specific routing details.
+After sending the requests, the demo queries Amazon CloudWatch Logs to visualize how Amazon Bedrock automatically distributed them across multiple AWS Regions without any additional configuration. The Regional distribution varies based on [real-time factors](https://docs.aws.amazon.com/bedrock/latest/userguide/cross-Region-inference.html) including traffic, demand, and resource utilization. Cross-Region inference profiles route requests based on the source Region, so check [supported Regions and models](https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles-support.html) for specific routing details.
 
-**Note**: This demo requires Amazon Bedrock model invocation logging to be enabled and configured to send logs to Amazon CloudWatch Logs. This allows the demo to query regional distribution data. The CloudWatch log group name is configurable in `config/config.yaml` under `aws.bedrock_log_group_name` (default: "BedrockModelInvocation").
+**Note**: This demo requires Amazon Bedrock model invocation logging to be enabled and configured to send logs to Amazon CloudWatch Logs. This allows the demo to query Regional distribution data. The CloudWatch log group name is configurable in `config/config.yaml` under `aws.bedrock_log_group_name` (default: "BedrockModelInvocation").
 
 ```bash
 uv run python src/demo_cris.py --requests 10
 ```
 
-The command output will show regional distribution similar to the example below (actual distribution may vary):
+The command output will show Regional distribution similar to the example below (actual distribution may vary):
 
 ```bash
 Region       | Invocations | Percentage
@@ -129,7 +114,21 @@ us-east-2    |           8 |      80.0%
 us-west-2    |           2 |      20.0%
 ```
 
-The results demonstrate how cross-region inference operates within each account independently, distributing requests across regions based on real-time capacity. This account sharding approach can significantly increase available throughput by utilizing quotas from multiple accounts. AWS accounts provide isolation boundaries that help contain potential risks, though organizations must implement appropriate [security controls](https://aws.amazon.com/compliance/shared-responsibility-model/) for their specific requirements. This strategy enables quota allocation where AWS service quotas are enforced separately for each account, preventing workloads from consuming quotas for each other, while supporting different teams with their different responsibilities and resource needs. Organizations also benefit from billing separation to directly map costs to underlying projects.
+The results demonstrate how cross-Region inference operates within each account independently, distributing requests across Regions based on real-time capacity. This account sharding approach can significantly increase available throughput by utilizing quotas from multiple accounts. AWS accounts provide isolation boundaries that help contain potential risks, though organizations must implement appropriate [security controls](https://aws.amazon.com/compliance/shared-responsibility-model/) for their specific requirements. This strategy enables quota allocation where AWS service quotas are enforced separately for each account, preventing workloads from consuming quotas for each other, while supporting different teams with their different responsibilities and resource needs. Organizations also benefit from billing separation to directly map costs to underlying projects.
+
+## Generative AI Gateway Configuration
+
+For the next 3 patterns we will need to start our LiteLLM Gateway. The project uses a single configuration file, [**config.yaml**](config/config.yaml), which contains the LiteLLM proxy configuration. All model endpoints use **Amazon Bedrock cross-Region inference (CRIS)**, which automatically distributes requests across multiple AWS Regions to provide an additional layer of capacity and availability.
+
+## Starting the Gateway
+
+Open a terminal window and start the gateway server. **Keep this terminal running** throughout the resilience patterns 3-5:
+
+```bash
+./bin/start-gateway.sh
+```
+
+The gateway will start on port 4000 by default (configurable in `config/config.yaml`). Leave this process running and use a separate terminal for executing the demonstration scripts below.
 
 ### 3. LiteLLM Fallback
 
