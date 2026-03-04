@@ -12,14 +12,29 @@ import argparse
 import signal
 import sys
 import yaml
+from pathlib import Path
 from datetime import datetime
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Load configuration
-with open('./config/config.yaml', 'r') as f:
+config_path = Path(__file__).resolve().parent.parent / "config" / "config.yaml"
+with open(config_path, 'r') as f:
     config = yaml.safe_load(f)
     port = config.get('litellm', {}).get('port', 4000)
+
+def sanitize_error(error_msg):
+    """Sanitize error message to avoid information leakage"""
+    error_str = str(error_msg)
+    if "ThrottlingException" in error_str or "ServiceQuota" in error_str:
+        return "Throttled"
+    if "ValidationException" in error_str:
+        return "Validation Error"
+    if "AccessDenied" in error_str:
+        return "Access Denied"
+    if "ResourceNotFound" in error_str:
+        return "Resource Not Found"
+    return "API Error"
 
 def log_with_timestamp(message, color=""):
     timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
@@ -39,7 +54,7 @@ def log_with_timestamp(message, color=""):
 def send_consumer_request(consumer_id, api_key, request_id, question):
     """Send a single request for a specific consumer"""
     try:
-        client = openai.OpenAI(api_key=api_key, base_url=f"http://0.0.0.0:{port}")
+        client = openai.OpenAI(api_key=api_key, base_url=f"http://localhost:{port}")
         start_time = time.time()
         
         # Each consumer uses their own model with different RPM limits
@@ -93,7 +108,7 @@ def send_consumer_request(consumer_id, api_key, request_id, question):
         
     except Exception as e:
         log_with_timestamp(
-            f"{consumer_id} | ERROR        | Req #{request_id:2d} → {str(e)[:50]}...", 
+            f"{consumer_id} | ERROR        | Req #{request_id:2d} → {sanitize_error(e)}",
             "red"
         )
         return {
@@ -102,7 +117,7 @@ def send_consumer_request(consumer_id, api_key, request_id, question):
             "success": False,
             "model_used": None,
             "response_time": 0,
-            "error": str(e)
+            "error": sanitize_error(e)
         }
 
 def run_consumer_workload(consumer_id, api_key, num_requests, request_interval, consumer_type, start_time):

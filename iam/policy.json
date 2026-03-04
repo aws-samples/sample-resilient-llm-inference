@@ -5,7 +5,8 @@
       "Sid": "BedrockModelInvocation",
       "Effect": "Allow",
       "Action": [
-        "bedrock:InvokeModel"
+        "bedrock:InvokeModel",
+        "bedrock:InvokeModelWithResponseStream"
       ],
       "Resource": [
         "arn:aws:bedrock:<REGION>:<ACCOUNT_ID>:inference-profile/us.anthropic.claude-sonnet-4-6",

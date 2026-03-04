@@ -1,11 +1,11 @@
 [project]
 name = "genai-resilience"
 version = "0.1.0"
-description = "Add your description here"
+description = "Resilient LLM inference patterns with Amazon Bedrock and LiteLLM"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "litellm[proxy]>=1.73.6.post1",
-    "openai>=1.93.0",
-    "boto3>=1.35.0",
+    "litellm[proxy]>=1.82.0",
+    "openai>=2.0.0",
+    "boto3>=1.40.0",
 ]

@@ -13,15 +13,30 @@ import argparse
 import signal
 import sys
 import yaml
+from pathlib import Path
 from datetime import datetime
 from collections import defaultdict
 
 # Load configuration
-with open('./config/config.yaml', 'r') as f:
+config_path = Path(__file__).resolve().parent.parent / "config" / "config.yaml"
+with open(config_path, 'r') as f:
     config = yaml.safe_load(f)
     port = config.get('litellm', {}).get('port', 4000)
 
-client = openai.OpenAI(api_key="demo-key", base_url=f"http://0.0.0.0:{port}")
+client = openai.OpenAI(api_key="demo-key", base_url=f"http://localhost:{port}")
+
+def sanitize_error(error_msg):
+    """Sanitize error message to avoid information leakage"""
+    error_str = str(error_msg)
+    if "ThrottlingException" in error_str or "ServiceQuota" in error_str:
+        return "Throttled"
+    if "ValidationException" in error_str:
+        return "Validation Error"
+    if "AccessDenied" in error_str:
+        return "Access Denied"
+    if "ResourceNotFound" in error_str:
+        return "Resource Not Found"
+    return "API Error"
 
 def print_router_settings():
     """Print router settings configuration as a formatted table"""
@@ -133,13 +148,13 @@ def send_request(request_id, question):
         }
         
     except Exception as e:
-        log_with_timestamp(f"Request #{request_id:2d} → ERROR: {str(e)}", "red")
+        log_with_timestamp(f"Request #{request_id:2d} → ERROR: {sanitize_error(e)}", "red")
         return {
             "request_id": request_id,
             "model_used": "error",
             "response_time": 0,
             "success": False,
-            "error": str(e)
+            "error": sanitize_error(e)
         }
 
 def demo_load_balancing(run_number=None):

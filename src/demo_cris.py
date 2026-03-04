@@ -13,12 +13,14 @@ import sys
 import yaml
 import re
 import boto3
+from pathlib import Path
 from datetime import datetime
 from collections import defaultdict, Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Load configuration
-with open('./config/config.yaml', 'r') as f:
+config_path = Path(__file__).resolve().parent.parent / "config" / "config.yaml"
+with open(config_path, 'r') as f:
     config = yaml.safe_load(f)
 
 def log_with_timestamp(message, color=""):
@@ -44,7 +46,7 @@ def get_aws_profile():
         if not isinstance(profile, str) or not profile.strip():
             return 'default'
         return profile.strip()
-    except:
+    except Exception:
         return 'default'
 
 def get_aws_region():
@@ -55,12 +57,11 @@ def get_aws_region():
         if not isinstance(region, str) or not region.strip():
             return 'us-east-1'
         # Simple region format validation (basic pattern)
-        import re
         if not re.match(r'^[a-z]{2}(-[a-z]+)*-[0-9]+$', region.strip()):
             log_with_timestamp(f"Invalid region format '{region}', using default", "yellow")
             return 'us-east-1'
         return region.strip()
-    except:
+    except Exception:
         return 'us-east-1'
 
 def get_log_group_name():
@@ -71,12 +72,11 @@ def get_log_group_name():
         if not isinstance(log_group, str) or not log_group.strip():
             return 'BedrockModelInvocation'
         # CloudWatch log group name validation (basic pattern)
-        import re
         if not re.match(r'^[\w\.\-_/]+$', log_group.strip()):
             log_with_timestamp(f"Invalid log group name format, using default", "yellow")
             return 'BedrockModelInvocation'
         return log_group.strip()
-    except:
+    except Exception:
         return 'BedrockModelInvocation'
 
 def start_cloudwatch_query(logs_client, model_id, start_timestamp_ms, expected_count):

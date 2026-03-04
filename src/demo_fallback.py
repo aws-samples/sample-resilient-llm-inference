@@ -8,12 +8,14 @@ import openai
 import time
 import threading
 import yaml
+from pathlib import Path
 from datetime import datetime
 from collections import defaultdict
 
 # Load configuration with validation
+config_path = Path(__file__).resolve().parent.parent / "config" / "config.yaml"
 try:
-    with open('./config/config.yaml', 'r') as f:
+    with open(config_path, 'r') as f:
         config = yaml.safe_load(f)
         port = config.get('litellm', {}).get('port', 4000)
         # Validate port range
@@ -25,7 +27,20 @@ except Exception as e:
     config = {}
     port = 4000
 
-client = openai.OpenAI(api_key="demo-key", base_url=f"http://0.0.0.0:{port}")
+client = openai.OpenAI(api_key="demo-key", base_url=f"http://localhost:{port}")
+
+def sanitize_error(error_msg):
+    """Sanitize error message to avoid information leakage"""
+    error_str = str(error_msg)
+    if "ThrottlingException" in error_str or "ServiceQuota" in error_str:
+        return "Throttled"
+    if "ValidationException" in error_str:
+        return "Validation Error"
+    if "AccessDenied" in error_str:
+        return "Access Denied"
+    if "ResourceNotFound" in error_str:
+        return "Resource Not Found"
+    return "API Error"
 
 def print_router_settings():
     """Print router settings configuration as a formatted table"""
@@ -182,29 +197,29 @@ def trigger_rate_limit_scenario():
                     })
             
         except openai.RateLimitError as e:
-            log_with_timestamp(f"Request #{req_id:2d} → RATE LIMIT: {str(e)}", "red")
+            log_with_timestamp(f"Request #{req_id:2d} → RATE LIMIT: {sanitize_error(e)}", "red")
             with results_lock:
                 results.append({
                     "request_id": req_id,
                     "error": "RateLimitError",
                     "success": False
                 })
-                
+
         except openai.APIError as e:
-            log_with_timestamp(f"Request #{req_id:2d} → API ERROR: {str(e)}", "red")
+            log_with_timestamp(f"Request #{req_id:2d} → API ERROR: {sanitize_error(e)}", "red")
             with results_lock:
                 results.append({
                     "request_id": req_id,
-                    "error": "APIError", 
+                    "error": "APIError",
                     "success": False
                 })
-                
+
         except Exception as e:
-            log_with_timestamp(f"Request #{req_id:2d} → ERROR: {str(e)}", "red")
+            log_with_timestamp(f"Request #{req_id:2d} → ERROR: {sanitize_error(e)}", "red")
             with results_lock:
                 results.append({
                     "request_id": req_id,
-                    "error": str(e),
+                    "error": sanitize_error(e),
                     "success": False
                 })
     

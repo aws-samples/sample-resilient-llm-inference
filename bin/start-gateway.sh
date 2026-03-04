@@ -1,5 +1,7 @@
 #!/bin/bash
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
 # Read configuration from config.yaml using uv's Python environment with validation
 CONFIG=$(uv run python -c "
 import yaml
@@ -7,7 +9,7 @@ import sys
 import re
 
 try:
-    with open('./config/config.yaml', 'r') as f:
+    with open('$SCRIPT_DIR/../config/config.yaml', 'r') as f:
         config = yaml.safe_load(f)
         aws_config = config.get('aws', {})
         port = config.get('litellm', {}).get('port', 4000)
@@ -51,4 +53,4 @@ echo "AWS Configuration: Profile='$AWS_PROFILE', Region='$AWS_REGION'"
 echo "================================================================================"
 
 # Start the gateway with single worker for cleaner demo output
-uv run litellm --config ./config/config.yaml --port $PORT --num_workers 1
+uv run litellm --config "$SCRIPT_DIR/../config/config.yaml" --port $PORT --num_workers 1

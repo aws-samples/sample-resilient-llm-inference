@@ -12,12 +12,14 @@ import argparse
 import sys
 import yaml
 import boto3
+from pathlib import Path
 from datetime import datetime
 from collections import defaultdict, Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Load configuration
-with open('./config/config.yaml', 'r') as f:
+config_path = Path(__file__).resolve().parent.parent / "config" / "config.yaml"
+with open(config_path, 'r') as f:
     config = yaml.safe_load(f)
 
 def log_with_timestamp(message, color=""):
@@ -253,8 +255,15 @@ def send_bedrock_request(request_id, model_id, question, profile_name, account_t
             )
             error_type = "ThrottlingException"
         else:
+            sanitized_error = "API Error"
+            if "ValidationException" in error_msg:
+                sanitized_error = "Validation Error"
+            elif "AccessDenied" in error_msg:
+                sanitized_error = "Access Denied"
+            elif "ResourceNotFound" in error_msg:
+                sanitized_error = "Resource Not Found"
             log_with_timestamp(
-                f"Request #{request_id:2d} | {account_type:8s} | ERROR | {error_msg[:50]}...",
+                f"Request #{request_id:2d} | {account_type:8s} | ERROR | {sanitized_error}",
                 "red"
             )
             error_type = "Error"
