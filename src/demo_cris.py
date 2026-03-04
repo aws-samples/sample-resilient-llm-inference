@@ -85,7 +85,7 @@ def start_cloudwatch_query(logs_client, model_id, start_timestamp_ms, expected_c
         # Query specifically for the model used in this demo run
         # The modelId in logs is stored as ARN with inference-profile, so we need to match on the suffix
         query_string = f"""
-        filter modelId like /inference-profile\/{model_id}/
+        filter modelId like /inference-profile\\/{model_id}/
         and toMillis(@timestamp) >= {start_timestamp_ms}
         | stats count(*) as invocationCount by inferenceRegion
         | sort inferenceRegion
@@ -299,7 +299,7 @@ def run_cris_demo(num_requests=20):
     print("=" * 80)
     
     # Get model ID from config
-    model_id = config.get('cris', {}).get('model_id', 'us.anthropic.claude-sonnet-4-20250514-v1:0')
+    model_id = config.get('cris', {}).get('model_id', 'us.anthropic.claude-sonnet-4-6')
     
     
     print(f"Sending {num_requests} requests in parallel to demonstrate cross-region distribution.")

@@ -52,7 +52,7 @@ def get_log_group_name():
 
 def get_model_id():
     """Get model ID for cross-account demo"""
-    return config.get('cris', {}).get('model_id', 'us.anthropic.claude-sonnet-4-20250514-v1:0')
+    return config.get('cris', {}).get('model_id', 'us.anthropic.claude-sonnet-4-6')
 
 def verify_aws_credentials(profile_name, account_type):
     """Verify AWS credentials for a profile"""

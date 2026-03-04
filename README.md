@@ -14,15 +14,15 @@ To illustrate these concepts, this project uses [LiteLLM](https://docs.litellm.a
 
 ### AWS Configuration
 1. **AWS Account**: An active account with [Amazon Bedrock access](https://docs.aws.amazon.com/bedrock/latest/userguide/setting-up.html). For the account sharding demo, you'll need access to two AWS accounts, both configured with all the requirements described in items 2-4 below. Enable the following models in each account:
-    - Anthropic Claude 3.7 Sonnet and Claude Sonnet 4
+    - Anthropic Claude Sonnet 4.5, Claude Sonnet 4.6, and Claude Haiku 4.5
 2. **AWS Profile & Region**: The project reads AWS configuration from `config/config.yaml`. First, update the profile name and Region in `config/config.yaml` to match your setup, then ensure your [AWS profile credentials are configured](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html) before running the demos. The gateway and demo scripts will automatically use the profile and Region specified in `config/config.yaml`. For multi-account deployments, follow [AWS multi-account best practices](https://docs.aws.amazon.com/whitepapers/latest/organizing-your-aws-environment/organizing-your-aws-environment.html).
    - A sample least-privilege IAM policy needed to run all the demos is provided in [`iam/policy.json`](iam/policy.json). Replace `<REGION>` and `<ACCOUNT_ID>` placeholders with your specific values before applying. Note that the values might change if you modify the default configuration values in `config/config.yaml`.
 3. **Enable Amazon Bedrock cross-Region inference**: Configure [cross-Region inference](https://docs.aws.amazon.com/bedrock/latest/userguide/cross-Region-inference.html) in your AWS account to allow automatic distribution of requests across multiple AWS Regions for improved availability and throughput.
 4. **Enable CloudWatch Logging for Bedrock**: Enable [model invocation logging](https://docs.aws.amazon.com/bedrock/latest/userguide/model-invocation-logging.html) in Amazon Bedrock and create the CloudWatch log group in the same Region as your Bedrock configuration. Set the log group name in `config/config.yaml` under `aws.bedrock_log_group_name` (default: "BedrockModelInvocation"). Ensure your AWS profile has the required permissions:
         - `bedrock:InvokeModel` on the following model families:
-            - `us.anthropic.claude-3-7-sonnet-*`
-            - `us.anthropic.claude-sonnet-4-*`
-            - `us.anthropic.claude-3-5-sonnet-*`
+            - `us.anthropic.claude-sonnet-4-6*`
+            - `us.anthropic.claude-sonnet-4-5-*`
+            - `us.anthropic.claude-haiku-4-5-*`
             - `us.amazon.nova-*`
         - `logs:StartQuery`, `logs:GetQueryResults`, `logs:DescribeQueries`, `logs:DescribeLogGroups` for CloudWatch Logs
 
@@ -52,7 +52,7 @@ This demo showcases [Amazon Bedrock cross-Region inference](https://docs.aws.ama
 
 | Model Endpoint| # Requests Sent |
 |-------|---------|
-| us.anthropic.claude-sonnet-4-20250514-v1:0 | 10 |
+| us.anthropic.claude-sonnet-4-6 | 10 |
 
 After sending the requests, the demo queries Amazon CloudWatch Logs to visualize how Amazon Bedrock automatically distributed them across multiple AWS Regions without any additional configuration. The Regional distribution varies based on [real-time factors](https://docs.aws.amazon.com/bedrock/latest/userguide/cross-Region-inference.html) including traffic, demand, and resource utilization. Cross-Region inference profiles route requests based on the source Region, so check [supported Regions and models](https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles-support.html) for specific routing details.
 
@@ -138,10 +138,10 @@ This demo illustrates automatic fallback behavior when specific application requ
 
 | Model | Max RPM | Type | Purpose |
 |-------|---------|------|---------|
-| us.anthropic.claude-sonnet-4-20250514-v1:0 | 3 | Primary | Low limit to trigger fallback |
-| us.anthropic.claude-3-5-sonnet-20241022-v2:0 | 25 | Fallback | Higher capacity backup |
+| us.anthropic.claude-sonnet-4-6 | 3 | Primary | Low limit to trigger fallback |
+| us.anthropic.claude-haiku-4-5-20251001-v1:0 | 25 | Fallback | Higher capacity backup |
 
-The demo sends 10 concurrent requests to overwhelm the primary model's capacity. You'll see 3 requests handled by the primary Claude Sonnet 4 model, with the remaining 7 automatically routed to the fallback Claude Sonnet 3.5 model. All 10 requests complete successfully, demonstrating improved availability through fallback mechanisms despite rate limits being breached (note: actual availability depends on proper implementation of [resilience patterns](https://aws.amazon.com/builders-library/reliability-pillar/) and underlying service health).
+The demo sends 10 concurrent requests to overwhelm the primary model's capacity. You'll see 3 requests handled by the primary Claude Sonnet 4.6 model, with the remaining 7 automatically routed to the fallback Claude Haiku 4.5 model. All 10 requests complete successfully, demonstrating improved availability through fallback mechanisms despite rate limits being breached (note: actual availability depends on proper implementation of [resilience patterns](https://aws.amazon.com/builders-library/reliability-pillar/) and underlying service health).
 
 ```bash
 uv run python src/demo_fallback.py
@@ -150,16 +150,16 @@ uv run python src/demo_fallback.py
 Sample output showing fallback in action:
 
 ```bash
-[14:36:24.947] Request # 2 → PRIMARY:  Model: us.anthropic.claude-sonnet-4-20250514-v1:0    | Time:  6.03s
-[14:36:25.770] Request # 1 → PRIMARY:  Model: us.anthropic.claude-sonnet-4-20250514-v1:0    | Time:  6.90s
-[14:36:27.621] Request # 4 → FALLBACK! Model: us.anthropic.claude-3-5-sonnet-20241022-v2:0  | Time:  8.60s
-[14:36:28.050] Request # 3 → PRIMARY:  Model: us.anthropic.claude-sonnet-4-20250514-v1:0    | Time:  9.08s
-[14:36:29.157] Request # 5 → FALLBACK! Model: us.anthropic.claude-3-5-sonnet-20241022-v2:0  | Time: 10.08s
-[14:36:29.330] Request # 8 → FALLBACK! Model: us.anthropic.claude-3-5-sonnet-20241022-v2:0  | Time: 10.09s
-[14:36:33.480] Request # 6 → FALLBACK! Model: us.anthropic.claude-3-5-sonnet-20241022-v2:0  | Time: 14.35s
-[14:36:36.013] Request # 9 → FALLBACK! Model: us.anthropic.claude-3-5-sonnet-20241022-v2:0  | Time: 16.71s
-[14:36:40.322] Request # 7 → FALLBACK! Model: us.anthropic.claude-3-5-sonnet-20241022-v2:0  | Time: 21.14s
-[14:36:42.028] Request #10 → FALLBACK! Model: us.anthropic.claude-3-5-sonnet-20241022-v2:0  | Time: 22.68s
+[14:36:24.947] Request # 2 → PRIMARY:  Model: us.anthropic.claude-sonnet-4-6    | Time:  6.03s
+[14:36:25.770] Request # 1 → PRIMARY:  Model: us.anthropic.claude-sonnet-4-6    | Time:  6.90s
+[14:36:27.621] Request # 4 → FALLBACK! Model: us.anthropic.claude-haiku-4-5-20251001-v1:0  | Time:  8.60s
+[14:36:28.050] Request # 3 → PRIMARY:  Model: us.anthropic.claude-sonnet-4-6    | Time:  9.08s
+[14:36:29.157] Request # 5 → FALLBACK! Model: us.anthropic.claude-haiku-4-5-20251001-v1:0  | Time: 10.08s
+[14:36:29.330] Request # 8 → FALLBACK! Model: us.anthropic.claude-haiku-4-5-20251001-v1:0  | Time: 10.09s
+[14:36:33.480] Request # 6 → FALLBACK! Model: us.anthropic.claude-haiku-4-5-20251001-v1:0  | Time: 14.35s
+[14:36:36.013] Request # 9 → FALLBACK! Model: us.anthropic.claude-haiku-4-5-20251001-v1:0  | Time: 16.71s
+[14:36:40.322] Request # 7 → FALLBACK! Model: us.anthropic.claude-haiku-4-5-20251001-v1:0  | Time: 21.14s
+[14:36:42.028] Request #10 → FALLBACK! Model: us.anthropic.claude-haiku-4-5-20251001-v1:0  | Time: 22.68s
 
 ================================================================================
 FALLBACK DEMONSTRATION RESULTS
@@ -171,13 +171,13 @@ Primary Model Used:    3
 Fallback Triggered:    7
 
 Model Usage Distribution:
-  FALLBACK us.anthropic.claude-3-5-sonnet-20241022-v2:0 :  7 requests ( 70.0%)
-  PRIMARY  us.anthropic.claude-sonnet-4-20250514-v1:0   :  3 requests ( 30.0%)
+  FALLBACK us.anthropic.claude-haiku-4-5-20251001-v1:0 :  7 requests ( 70.0%)
+  PRIMARY  us.anthropic.claude-sonnet-4-6   :  3 requests ( 30.0%)
 
-[14:36:42.029] FALLBACK WORKING: 7 requests successfully failed over to Sonnet 3.5 models!
+[14:36:42.029] FALLBACK WORKING: 7 requests successfully failed over to Haiku 4.5 models!
 ```
 
-The results show that once LiteLLM detects the primary Claude Sonnet 4 model has exceeded its configured RPM limits, the remaining requests automatically route to the fallback Claude Sonnet 3.5. This demonstrates the gateway's ability to maintain 100% success rates during rate limit scenarios through intelligent fallback routing.
+The results show that once LiteLLM detects the primary Claude Sonnet 4.6 model has exceeded its configured RPM limits, the remaining requests automatically route to the fallback Claude Haiku 4.5. This demonstrates the gateway's ability to maintain 100% success rates during rate limit scenarios through intelligent fallback routing.
 
 ### 4. LiteLLM Load Balancing
 
@@ -187,9 +187,9 @@ This demo demonstrates how LiteLLM's `simple-shuffle` routing strategy distribut
 
 | Model | Max RPM | Type | Purpose |
 |-------|---------|------|---------|
-| us.anthropic.claude-3-7-sonnet-20250219-v1:0 | 3 | Primary | Load balanced instance 1 |
-| us.anthropic.claude-sonnet-4-20250514-v1:0 | 3 | Primary | Load balanced instance 2 |
-| us.anthropic.claude-3-5-sonnet-20241022-v2:0 | 25 | Fallback | Overflow capacity |
+| us.anthropic.claude-sonnet-4-5-20250929-v1:0 | 3 | Primary | Load balanced instance 1 |
+| us.anthropic.claude-sonnet-4-6 | 3 | Primary | Load balanced instance 2 |
+| us.anthropic.claude-haiku-4-5-20251001-v1:0 | 25 | Fallback | Overflow capacity |
 
 When sending 10 concurrent requests, the simple-shuffle algorithm randomly distributes them across both primary models (6 RPM combined capacity). Once these models reach their limits, the remaining 4 requests automatically route to the fallback model, ensuring all requests are served successfully.
 
@@ -208,24 +208,24 @@ Successful:         10
 Failed:             0
 
 Model Distribution:
-  us.anthropic.claude-3-5-sonnet-20241022-v2:0       :  4 requests ( 40.0%)
-  us.anthropic.claude-3-7-sonnet-20250219-v1:0       :  3 requests ( 30.0%)
-  us.anthropic.claude-sonnet-4-20250514-v1:0         :  3 requests ( 30.0%)
+  us.anthropic.claude-haiku-4-5-20251001-v1:0       :  4 requests ( 40.0%)
+  us.anthropic.claude-sonnet-4-5-20250929-v1:0       :  3 requests ( 30.0%)
+  us.anthropic.claude-sonnet-4-6         :  3 requests ( 30.0%)
 
 [19:08:08.723] LOAD BALANCING WORKING: Requests distributed across multiple models!
 ```
 
 ### 5. LiteLLM Consumer/Quota Isolation
 
-This demo shows how quota isolation prevents "noisy neighbor" problems in multi-tenant environments. Each consumer uses the same underlying Claude 3.7 Sonnet model but with independent rate limiting buckets at the gateway level:
+This demo shows how quota isolation prevents "noisy neighbor" problems in multi-tenant environments. Each consumer uses the same underlying Claude Sonnet 4.5 model but with independent rate limiting buckets at the gateway level:
 
 ![Consumer/Quota Isolation Architecture](imgs/demo-quota.jpg)
 
 | Consumer | Model | Max RPM | Type | Purpose |
 |----------|-------|---------|------|---------|
-| Consumer A | us.anthropic.claude-3-7-sonnet-20250219-v1:0 | 3 | Noisy | Simulates aggressive consumer |
-| Consumer B | us.anthropic.claude-3-7-sonnet-20250219-v1:0 | 10 | Normal | Regular application workload |
-| Consumer C | us.anthropic.claude-3-7-sonnet-20250219-v1:0 | 10 | Normal | Regular application workload |
+| Consumer A | us.anthropic.claude-sonnet-4-5-20250929-v1:0 | 3 | Noisy | Simulates aggressive consumer |
+| Consumer B | us.anthropic.claude-sonnet-4-5-20250929-v1:0 | 10 | Normal | Regular application workload |
+| Consumer C | us.anthropic.claude-sonnet-4-5-20250929-v1:0 | 10 | Normal | Regular application workload |
 
 The demo simulates a real-world scenario where all three consumers send 5 parallel requests simultaneously. Consumer A, with its 3 RPM limit, can only process 3 requests successfully before being rate-limited. Meanwhile, Consumers B and C, with their 10 RPM quotas, successfully process all their requests. This proves that one consumer's aggressive behavior cannot affect the quality of service for other consumers.
 

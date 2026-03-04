@@ -110,8 +110,8 @@ def trigger_rate_limit_scenario():
     print("=" * 80)
     print("LITELLM FALLBACK DEMO")
     print("=" * 80)
-    print("This demo triggers rate limits on Claude models to show fallback to Sonnet 3.5 models")
-    print("Watch for model switches from Claude → Sonnet 3.5 when limits are hit")
+    print("This demo triggers rate limits on Claude models to show fallback to Haiku 4.5 models")
+    print("Watch for model switches from Claude → Haiku 4.5 when limits are hit")
     print()
     
     # Print router settings table
@@ -141,7 +141,7 @@ def trigger_rate_limit_scenario():
             log_with_timestamp(f"Request #{req_id:2d}: Asking '{question}'...", "cyan")
             
             response = client.chat.completions.create(
-                model="claude-sonnet-fallback-demo",  # This should fallback to Sonnet 3.5 when rate limited
+                model="claude-sonnet-fallback-demo",  # This should fallback to Haiku 4.5 when rate limited
                 messages=[{"role": "user", "content": question}],
                 timeout=30
             )
@@ -150,8 +150,8 @@ def trigger_rate_limit_scenario():
             response_time = round(end_time - start_time, 2)
             model_used = getattr(response, 'model', 'unknown')
             
-            # Check if this was a fallback (Sonnet 3.5 model used instead of primary Claude)
-            is_fallback = 'sonnet-3-5' in model_used.lower() or '3-5-sonnet' in model_used.lower()
+            # Check if this was a fallback (Haiku 4.5 model used instead of primary Claude)
+            is_fallback = 'haiku' in model_used.lower()
             
             if is_fallback:
                 log_with_timestamp(
@@ -242,7 +242,7 @@ def trigger_rate_limit_scenario():
         max_model_len = max(len(model) for model in model_usage.keys()) if model_usage else 0
         
         for model, count in sorted(model_usage.items()):
-            model_type = "FALLBACK" if ('sonnet-3-5' in model.lower() or '3-5-sonnet' in model.lower()) else "PRIMARY "
+            model_type = "FALLBACK" if 'haiku' in model.lower() else "PRIMARY "
             percentage = (count / successful_requests) * 100 if successful_requests > 0 else 0
             # Create properly aligned output with fixed-width type labels
             print(f"  {model_type} {model:<{max_model_len}} : {count:2d} requests ({percentage:5.1f}%)")
@@ -250,7 +250,7 @@ def trigger_rate_limit_scenario():
     print()
     
     if fallback_events:
-        log_with_timestamp(f"FALLBACK WORKING: {fallback_count} requests successfully failed over to Sonnet 3.5 models!", "green")
+        log_with_timestamp(f"FALLBACK WORKING: {fallback_count} requests successfully failed over to Haiku 4.5 models!", "green")
         print()
         print("Fallback Events Detail:")
         # Calculate alignment width for request IDs and model names

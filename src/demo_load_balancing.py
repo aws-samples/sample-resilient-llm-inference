@@ -2,7 +2,7 @@
 """
 Demo: Load Balancing Demonstration
 Shows how requests are distributed across multiple model instances
-with fallback to Claude Sonnet 3.5 when primary models are overloaded
+with fallback to Claude Haiku 4.5 when primary models are overloaded
 """
 
 import json
@@ -104,7 +104,7 @@ def send_request(request_id, question):
         start_time = time.time()
         
         response = client.chat.completions.create(
-            model="claude-sonnet-loadbalance-demo",  # Load balances across instances, falls back to Sonnet 3.5
+            model="claude-sonnet-loadbalance-demo",  # Load balances across instances, falls back to Haiku 4.5
             messages=[{"role": "user", "content": question}],
             timeout=30
         )
@@ -115,8 +115,8 @@ def send_request(request_id, question):
         # Extract model info from response
         model_used = getattr(response, 'model', 'unknown')
         
-        # Determine if this is a fallback model
-        is_fallback = "claude-3-5-sonnet" in model_used
+        # Determine if this is a fallback model (Haiku is used as fallback)
+        is_fallback = "haiku" in model_used
         type_label = "FALLBACK!" if is_fallback else "PRIMARY: "
         color = "yellow" if is_fallback else "green"
         
@@ -153,8 +153,8 @@ def demo_load_balancing(run_number=None):
     print(header)
     print("=" * 80)
     print("This demo shows how requests are distributed across multiple Claude Sonnet models")
-    print("Requests to 'claude-sonnet-loadbalance-demo' are load balanced between Sonnet 4 and Sonnet 3.7 (Primary models)")
-    print("When primary models reach their rate limits (3 RPM each), requests fallback to Sonnet 3.5 (50 RPM)")
+    print("Requests to 'claude-sonnet-loadbalance-demo' are load balanced between Sonnet 4.6 and Sonnet 4.5 (Primary models)")
+    print("When primary models reach their rate limits (3 RPM each), requests fallback to Haiku 4.5 (25 RPM)")
     print()
     
     # Print router settings table
