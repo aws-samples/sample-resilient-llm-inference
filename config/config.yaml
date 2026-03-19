@@ -46,6 +46,8 @@ model_list:
   litellm_params:
     model: bedrock/us.anthropic.claude-sonnet-4-6
     <<: *aws-defaults
+  model_info:
+    id: us.anthropic.claude-sonnet-4-6
   rpm: 3  # Reduced for easier demo
   tpm: 100000
 
@@ -53,6 +55,8 @@ model_list:
   litellm_params:
     model: bedrock/us.anthropic.claude-sonnet-4-5-20250929-v1:0
     <<: *aws-defaults
+  model_info:
+    id: us.anthropic.claude-sonnet-4-5-20250929-v1:0
   rpm: 3  # Reduced for easier demo
   tpm: 100000
 
@@ -61,6 +65,8 @@ model_list:
   litellm_params:
     model: bedrock/us.anthropic.claude-haiku-4-5-20251001-v1:0
     <<: *aws-defaults
+  model_info:
+    id: us.anthropic.claude-haiku-4-5-20251001-v1:0
   rpm: 25  # Split capacity between demos
   tpm: 250000
 
@@ -95,7 +101,7 @@ model_list:
 
 # CRIS (Cross-Region Inference) Demo - Direct Bedrock model ID for demo script
 cris:
-  model_id: "us.anthropic.claude-sonnet-4-6"
+  model_id: "us.anthropic.claude-opus-4-6-v1"
 
 router_settings:
   routing_strategy: "simple-shuffle"

@@ -118,17 +118,18 @@ def send_request(request_id, question):
     try:
         start_time = time.time()
         
-        response = client.chat.completions.create(
+        raw_response = client.chat.completions.with_raw_response.create(
             model="claude-sonnet-loadbalance-demo",  # Load balances across instances, falls back to Haiku 4.5
             messages=[{"role": "user", "content": question}],
             timeout=30
         )
-        
+        response = raw_response.parse()
+
         end_time = time.time()
         response_time = round(end_time - start_time, 2)
-        
-        # Extract model info from response
-        model_used = getattr(response, 'model', 'unknown')
+
+        # Get actual model: prefer header (has real model ID), fall back to response.model
+        model_used = raw_response.headers.get('x-litellm-model-id', getattr(response, 'model', 'unknown'))
         
         # Determine if this is a fallback model (Haiku is used as fallback)
         is_fallback = "haiku" in model_used
