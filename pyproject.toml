@@ -12,6 +12,9 @@ dependencies = [
 
 [tool.uv]
 # Override litellm's fastapi-sso<0.17.0 constraint to fix CSRF vulnerability (Dependabot alert #1)
+# Override litellm[proxy]'s cryptography<47.0 cap to fix the high-severity bundled-OpenSSL
+# vulnerability (CVE patched in cryptography 48.0.1). cryptography is only used transitively.
 override-dependencies = [
     "fastapi-sso>=0.17.0",
+    "cryptography>=48.0.1",
 ]
