@@ -14,14 +14,13 @@ To illustrate these concepts, this project uses [LiteLLM](https://docs.litellm.a
 
 ### AWS Configuration
 1. **AWS Account**: An active account with [Amazon Bedrock access](https://docs.aws.amazon.com/bedrock/latest/userguide/setting-up.html). For the account sharding demo, you'll need access to two AWS accounts, both configured with all the requirements described in items 2-4 below. Enable the following models in each account:
-    - Anthropic Claude Sonnet 4.5, Claude Sonnet 4.6, and Claude Haiku 4.5
+    - Anthropic Claude Sonnet 4.6 and Claude Haiku 4.5
 2. **AWS Profile & Region**: The project reads AWS configuration from `config/config.yaml`. First, update the profile name and Region in `config/config.yaml` to match your setup, then ensure your [AWS profile credentials are configured](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html) before running the demos. The gateway and demo scripts will automatically use the profile and Region specified in `config/config.yaml`. For multi-account deployments, follow [AWS multi-account best practices](https://docs.aws.amazon.com/whitepapers/latest/organizing-your-aws-environment/organizing-your-aws-environment.html).
    - A sample least-privilege IAM policy needed to run all the demos is provided in [`iam/policy.json`](iam/policy.json). Replace `<REGION>` and `<ACCOUNT_ID>` placeholders with your specific values before applying. Note that the values might change if you modify the default configuration values in `config/config.yaml`.
 3. **Enable Amazon Bedrock cross-Region inference**: Configure [cross-Region inference](https://docs.aws.amazon.com/bedrock/latest/userguide/cross-Region-inference.html) in your AWS account to allow automatic distribution of requests across multiple AWS Regions for improved availability and throughput.
 4. **Enable CloudWatch Logging for Bedrock**: Enable [model invocation logging](https://docs.aws.amazon.com/bedrock/latest/userguide/model-invocation-logging.html) in Amazon Bedrock and create the CloudWatch log group in the same Region as your Bedrock configuration. Set the log group name in `config/config.yaml` under `aws.bedrock_log_group_name` (default: "BedrockModelInvocation"). Ensure your AWS profile has the required permissions:
         - `bedrock:InvokeModel` on the following model families:
             - `us.anthropic.claude-sonnet-4-6*`
-            - `us.anthropic.claude-sonnet-4-5-*`
             - `us.anthropic.claude-haiku-4-5-*`
             - `us.amazon.nova-*`
         - `logs:StartQuery`, `logs:GetQueryResults`, `logs:DescribeQueries`, `logs:DescribeLogGroups` for CloudWatch Logs
@@ -187,8 +186,8 @@ This demo demonstrates how LiteLLM's `simple-shuffle` routing strategy distribut
 
 | Model | Max RPM | Type | Purpose |
 |-------|---------|------|---------|
-| us.anthropic.claude-sonnet-4-5-20250929-v1:0 | 3 | Primary | Load balanced instance 1 |
-| us.anthropic.claude-sonnet-4-6 | 3 | Primary | Load balanced instance 2 |
+| us.anthropic.claude-sonnet-4-6 | 3 | Primary | Load balanced instance 1 |
+| us.anthropic.claude-haiku-4-5-20251001-v1:0 | 3 | Primary | Load balanced instance 2 |
 | us.anthropic.claude-haiku-4-5-20251001-v1:0 | 25 | Fallback | Overflow capacity |
 
 When sending 10 concurrent requests, the simple-shuffle algorithm randomly distributes them across both primary models (6 RPM combined capacity). Once these models reach their limits, the remaining 4 requests automatically route to the fallback model, ensuring all requests are served successfully.
@@ -208,8 +207,7 @@ Successful:         10
 Failed:             0
 
 Model Distribution:
-  us.anthropic.claude-haiku-4-5-20251001-v1:0       :  4 requests ( 40.0%)
-  us.anthropic.claude-sonnet-4-5-20250929-v1:0       :  3 requests ( 30.0%)
+  us.anthropic.claude-haiku-4-5-20251001-v1:0       :  7 requests ( 70.0%)
   us.anthropic.claude-sonnet-4-6         :  3 requests ( 30.0%)
 
 [19:08:08.723] LOAD BALANCING WORKING: Requests distributed across multiple models!
@@ -217,15 +215,15 @@ Model Distribution:
 
 ### 5. LiteLLM Consumer/Quota Isolation
 
-This demo shows how quota isolation prevents "noisy neighbor" problems in multi-tenant environments. Each consumer uses the same underlying Claude Sonnet 4.5 model but with independent rate limiting buckets at the gateway level:
+This demo shows how quota isolation prevents "noisy neighbor" problems in multi-tenant environments. Each consumer uses the same underlying Claude Sonnet 4.6 model but with independent rate limiting buckets at the gateway level:
 
 ![Consumer/Quota Isolation Architecture](imgs/demo-quota.jpg)
 
 | Consumer | Model | Max RPM | Type | Purpose |
 |----------|-------|---------|------|---------|
-| Consumer A | us.anthropic.claude-sonnet-4-5-20250929-v1:0 | 3 | Noisy | Simulates aggressive consumer |
-| Consumer B | us.anthropic.claude-sonnet-4-5-20250929-v1:0 | 10 | Normal | Regular application workload |
-| Consumer C | us.anthropic.claude-sonnet-4-5-20250929-v1:0 | 10 | Normal | Regular application workload |
+| Consumer A | us.anthropic.claude-sonnet-4-6 | 3 | Noisy | Simulates aggressive consumer |
+| Consumer B | us.anthropic.claude-sonnet-4-6 | 10 | Normal | Regular application workload |
+| Consumer C | us.anthropic.claude-sonnet-4-6 | 10 | Normal | Regular application workload |
 
 The demo simulates a real-world scenario where all three consumers send 5 parallel requests simultaneously. Consumer A, with its 3 RPM limit, can only process 3 requests successfully before being rate-limited. Meanwhile, Consumers B and C, with their 10 RPM quotas, successfully process all their requests. This proves that one consumer's aggressive behavior cannot affect the quality of service for other consumers.
 
