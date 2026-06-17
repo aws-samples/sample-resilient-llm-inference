@@ -1,4 +1,4 @@
-# Improving Resilience of Generative AI Applications with a LLM Gateway and Amazon Bedrock
+# Improving Resilience of Generative AI Applications with LLM Gateway and Amazon Bedrock
 
 As organizations scale from simple chatbots to complex agentic AI systems—where a single request triggers dozens of model calls—traditional approaches to managing LLM capacity fall short.
 
