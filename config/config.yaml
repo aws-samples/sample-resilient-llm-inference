@@ -53,10 +53,10 @@ model_list:
 
 - model_name: claude-sonnet-loadbalance-demo
   litellm_params:
-    model: bedrock/us.anthropic.claude-sonnet-4-5-20250929-v1:0
+    model: bedrock/us.anthropic.claude-haiku-4-5-20251001-v1:0
     <<: *aws-defaults
   model_info:
-    id: us.anthropic.claude-sonnet-4-5-20250929-v1:0
+    id: us.anthropic.claude-haiku-4-5-20251001-v1:0
   rpm: 3  # Reduced for easier demo
   tpm: 100000
 
@@ -80,21 +80,21 @@ model_list:
 # Special models for quota isolation testing - different RPM limits per consumer
 - model_name: consumer-a-model
   litellm_params:
-    model: bedrock/us.anthropic.claude-sonnet-4-5-20250929-v1:0
+    model: bedrock/us.anthropic.claude-sonnet-4-6
     <<: *aws-defaults
   rpm: 3  # Noisy consumer gets limited RPM
   tpm: 30000
 
 - model_name: consumer-b-model
   litellm_params:
-    model: bedrock/us.anthropic.claude-sonnet-4-5-20250929-v1:0
+    model: bedrock/us.anthropic.claude-sonnet-4-6
     <<: *aws-defaults
   rpm: 10  # Normal consumer gets higher RPM
   tpm: 100000
 
 - model_name: consumer-c-model
   litellm_params:
-    model: bedrock/us.anthropic.claude-sonnet-4-5-20250929-v1:0
+    model: bedrock/us.anthropic.claude-sonnet-4-6
     <<: *aws-defaults
   rpm: 10  # Normal consumer gets higher RPM
   tpm: 100000
