@@ -1,5 +1,9 @@
 # Improving Resilience of Generative AI Applications with LLM Gateway and Amazon Bedrock
 
+> 📖 **This repository accompanies the AWS Machine Learning Blog post:**
+> **[Implementing resilience patterns with Amazon Bedrock and LLM gateway](https://aws.amazon.com/blogs/machine-learning/implementing-resilience-patterns-with-amazon-bedrock-and-llm-gateway/)**
+> — read it for the full walkthrough of all five patterns.
+
 As organizations scale from simple chatbots to complex agentic AI systems—where a single request triggers dozens of model calls—traditional approaches to managing LLM capacity fall short.
 
 This repository demonstrates a progressive "crawl, walk, run" strategy for building resilient GenAI applications on AWS. We cover 5 different patterns, starting with Amazon Bedrock cross-Region inference for basic load distribution, advancing to AWS account sharding for quota isolation between teams, and culminating in a centralized gateway that provides intelligent routing across multiple providers, application-level rate limiting, and enterprise governance.
